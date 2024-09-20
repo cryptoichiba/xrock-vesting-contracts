@@ -47,8 +47,8 @@ export async function run(provider: NetworkProvider) {
         unlocksCount: 0,
     };
     vestingDataConfig.unlocksCount = Math.ceil(
-      (1 - vestingDataConfig.cliffNumerator / vestingDataConfig.cliffDenominator) /
-      (vestingDataConfig.vestingNumerator / vestingDataConfig.vestingDenominator),
+        (1 - vestingDataConfig.cliffNumerator / vestingDataConfig.cliffDenominator) /
+        (vestingDataConfig.vestingNumerator / vestingDataConfig.vestingDenominator),
     );
 
     console.log("Vesting contract's Jetton wallet: ", vestingDataConfig.jettonWalletAddress);
