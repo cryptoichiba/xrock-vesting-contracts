@@ -14,7 +14,7 @@ export async function run(provider: NetworkProvider) {
     let claimerAddress = Address.parse("UQBcwZyR_6UZAfRjIqmw-aMPs46FXAHaEEQBojCG_8snMy9D")
 
     // @todo デプロイの前の取得方法が必要；現在は１デプロイ目のconsole.logを元に２デプロイ目の値を設定しています
-    let lookup_contract_jetton_wallet_address = Address.parse("EQBOGoiO1G75uB-HZAk_K8SBq0lBRQKSjszF8n6LY7AJpEAX")
+    let lockup_contract_jetton_wallet_address = Address.parse("EQBOGoiO1G75uB-HZAk_K8SBq0lBRQKSjszF8n6LY7AJpEAX")
 
     const jettonLockup = provider.open(
         JettonLockup.createFromConfig({
@@ -23,7 +23,7 @@ export async function run(provider: NetworkProvider) {
         }, await compile('JettonLockup')));
 
     let vestingDataConfig: VestingData = {
-        jettonWalletAddress: lookup_contract_jetton_wallet_address,
+        jettonWalletAddress: lockup_contract_jetton_wallet_address,
         cliffEndDate: 60,
         cliffNumerator: 12,
         cliffDenominator: 100,
