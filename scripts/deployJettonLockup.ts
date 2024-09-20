@@ -3,6 +3,9 @@ import { JettonLockup, VestingData } from '../wrappers/JettonLockup';
 import { compile, NetworkProvider } from '@ton/blueprint';
 import { randomAddress } from '@ton/test-utils';
 
+import { mnemonicToPrivateKey } from "@ton/crypto";
+import { WalletContractV5R1 } from "@ton/ton";
+
 export async function run(provider: NetworkProvider) {
     const tokenBalanceConfig = 25000n;
     let claimerAddress = Address.parse("UQBcwZyR_6UZAfRjIqmw-aMPs46FXAHaEEQBojCG_8snMy9D")
@@ -44,5 +47,18 @@ export async function run(provider: NetworkProvider) {
     console.log('Claimable Tokens: ', claimableTokens);
 
     const minFee = await jettonLockup.getMinFee();
-    await jettonLockup.sendClaimTokens({johnのclaimウォレットのsender}, minFee, tokenBalanceConfig);
+
+    // @ts-ignore
+    const mnemonic = process.env.WALLET_MNEMONIC.split(" ");
+
+    const keys = await mnemonicToPrivateKey(mnemonic);
+    const wallet = provider.open(
+      WalletContractV5R1.create({
+          workchain: 0,
+          publicKey: keys.publicKey,
+      }),
+    );
+    const claimerSender = wallet.sender(keys.secretKey);
+
+    await jettonLockup.sendClaimTokens(claimerSender, minFee, tokenBalanceConfig);
 }
