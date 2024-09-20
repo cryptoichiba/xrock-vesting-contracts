@@ -22,6 +22,7 @@
         "typescript": "^5.4.3"
     },
     "dependencies": {
-        "blueprint-scaffold": "^1.1.1"
+        "blueprint-scaffold": "^1.1.1",
+        "ton-lite-client": "^3.0.0"
     }
 }

@@ -1,13 +1,48 @@
-import { toNano } from '@ton/core';
-import { JettonLockup } from '../wrappers/JettonLockup';
+import { Address, beginCell, toNano } from '@ton/core';
+import { JettonLockup, VestingData } from '../wrappers/JettonLockup';
 import { compile, NetworkProvider } from '@ton/blueprint';
+import { randomAddress } from '@ton/test-utils';
 
 export async function run(provider: NetworkProvider) {
-    const jettonLockup = provider.open(JettonLockup.createFromConfig({}, await compile('JettonLockup')));
+    const tokenBalanceConfig = 25000n;
+    let claimerAddress = Address.parse("UQBcwZyR_6UZAfRjIqmw-aMPs46FXAHaEEQBojCG_8snMy9D")
 
-    await jettonLockup.sendDeploy(provider.sender(), toNano('0.05'));
+    let vestingDataConfig: VestingData = {
+        jettonWalletAddress: randomAddress(),
+        cliffEndDate: 60,
+        cliffNumerator: 12,
+        cliffDenominator: 100,
+        vestingPeriod: 30,
+        vestingNumerator: 15,
+        vestingDenominator: 100,
+        unlocksCount: 0,
+    };
+    vestingDataConfig.unlocksCount = Math.ceil(
+        (1 - vestingDataConfig.cliffNumerator / vestingDataConfig.cliffDenominator) /
+        (vestingDataConfig.vestingNumerator / vestingDataConfig.vestingDenominator),
+    );
+
+    const jettonLockup = provider.open(
+        JettonLockup.createFromConfig({
+            adminAddress: provider.sender().address!,
+            claimerAddress: claimerAddress
+        }, await compile('JettonLockup')));
+
+    // let lockupJettonWallet = ここでjettonLockupコントラクトに対応するjetton walletを生成;
+    // ここでlockupJettonWalletにtokenをtransferする
+
+    await jettonLockup.sendDeploy(
+        provider.sender(),
+        toNano('1'),
+        tokenBalanceConfig,
+        vestingDataConfig
+    );
 
     await provider.waitForDeploy(jettonLockup.address);
 
-    // run methods on `jettonLockup`
+    const claimableTokens = await jettonLockup.getClaimableTokens();
+    console.log('Claimable Tokens: ', claimableTokens);
+
+    const minFee = await jettonLockup.getMinFee();
+    await jettonLockup.sendClaimTokens({johnのclaimウォレットのsender}, minFee, tokenBalanceConfig);
 }
