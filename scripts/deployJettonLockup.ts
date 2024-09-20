@@ -1,17 +1,43 @@
-import { Address, beginCell, toNano } from '@ton/core';
+import { Address, beginCell, toNano, Cell, storeStateInit } from '@ton/core';
 import { JettonLockup, VestingData } from '../wrappers/JettonLockup';
 import { compile, NetworkProvider } from '@ton/blueprint';
 import { randomAddress } from '@ton/test-utils';
 
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
+import { JETTON_MASTER_ADDRESS, JETTON_WALLET_CODE } from "../wrappers/Config"
 
 export async function run(provider: NetworkProvider) {
+    const userJettonWalletInit = (address: Address): Cell => {
+        return beginCell()
+          .store(
+            storeStateInit({
+                code: JETTON_WALLET_CODE,
+                data: beginCell()
+                  .storeCoins(0)
+                  .storeAddress(address)
+                  .storeAddress(JETTON_MASTER_ADDRESS)
+                  .storeRef(JETTON_WALLET_CODE)
+                  .endCell(),
+            }),
+          )
+          .endCell();
+    };
+    const userJettonWalletAddress = (address: Address): Address => {
+        return new Address(0, userJettonWalletInit(address).hash());
+    };
+
     const tokenBalanceConfig = 25000n;
     let claimerAddress = Address.parse("UQBcwZyR_6UZAfRjIqmw-aMPs46FXAHaEEQBojCG_8snMy9D")
 
+    const jettonLockup = provider.open(
+        JettonLockup.createFromConfig({
+            adminAddress: provider.sender().address!,
+            claimerAddress: claimerAddress
+        }, await compile('JettonLockup')));
+
     let vestingDataConfig: VestingData = {
-        jettonWalletAddress: randomAddress(),
+        jettonWalletAddress: userJettonWalletAddress(jettonLockup.address),
         cliffEndDate: 60,
         cliffNumerator: 12,
         cliffDenominator: 100,
@@ -21,18 +47,11 @@ export async function run(provider: NetworkProvider) {
         unlocksCount: 0,
     };
     vestingDataConfig.unlocksCount = Math.ceil(
-        (1 - vestingDataConfig.cliffNumerator / vestingDataConfig.cliffDenominator) /
-        (vestingDataConfig.vestingNumerator / vestingDataConfig.vestingDenominator),
+      (1 - vestingDataConfig.cliffNumerator / vestingDataConfig.cliffDenominator) /
+      (vestingDataConfig.vestingNumerator / vestingDataConfig.vestingDenominator),
     );
 
-    const jettonLockup = provider.open(
-        JettonLockup.createFromConfig({
-            adminAddress: provider.sender().address!,
-            claimerAddress: claimerAddress
-        }, await compile('JettonLockup')));
-
-    // let lockupJettonWallet = ここでjettonLockupコントラクトに対応するjetton walletを生成;
-    // ここでlockupJettonWalletにtokenをtransferする
+    console.log("Vesting contract's Jetton wallet: ", vestingDataConfig.jettonWalletAddress);
 
     await jettonLockup.sendDeploy(
         provider.sender(),
