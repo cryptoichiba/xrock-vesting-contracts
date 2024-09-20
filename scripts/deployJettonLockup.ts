@@ -4,31 +4,17 @@ import { compile, NetworkProvider } from '@ton/blueprint';
 import { randomAddress } from '@ton/test-utils';
 
 import { mnemonicToPrivateKey } from "@ton/crypto";
-import { WalletContractV5R1 } from "@ton/ton";
+import { WalletContractV5R1, JettonMaster } from "@ton/ton";
 import { JETTON_MASTER_ADDRESS, JETTON_WALLET_CODE } from "../wrappers/Config"
 
 export async function run(provider: NetworkProvider) {
-    const userJettonWalletInit = (address: Address): Cell => {
-        return beginCell()
-          .store(
-            storeStateInit({
-                code: JETTON_WALLET_CODE,
-                data: beginCell()
-                  .storeCoins(0)
-                  .storeAddress(address)
-                  .storeAddress(JETTON_MASTER_ADDRESS)
-                  .storeRef(JETTON_WALLET_CODE)
-                  .endCell(),
-            }),
-          )
-          .endCell();
-    };
-    const userJettonWalletAddress = (address: Address): Address => {
-        return new Address(0, userJettonWalletInit(address).hash());
-    };
+
 
     const tokenBalanceConfig = 25000n;
     let claimerAddress = Address.parse("UQBcwZyR_6UZAfRjIqmw-aMPs46FXAHaEEQBojCG_8snMy9D")
+
+    // @todo デプロイの前の取得方法が必要；現在は１デプロイ目のconsole.logを元に２デプロイ目の値を設定しています
+    let lookup_contract_jetton_wallet_address = Address.parse("EQBOGoiO1G75uB-HZAk_K8SBq0lBRQKSjszF8n6LY7AJpEAX")
 
     const jettonLockup = provider.open(
         JettonLockup.createFromConfig({
@@ -37,7 +23,7 @@ export async function run(provider: NetworkProvider) {
         }, await compile('JettonLockup')));
 
     let vestingDataConfig: VestingData = {
-        jettonWalletAddress: userJettonWalletAddress(jettonLockup.address),
+        jettonWalletAddress: lookup_contract_jetton_wallet_address,
         cliffEndDate: 60,
         cliffNumerator: 12,
         cliffDenominator: 100,
@@ -51,8 +37,6 @@ export async function run(provider: NetworkProvider) {
         (vestingDataConfig.vestingNumerator / vestingDataConfig.vestingDenominator),
     );
 
-    console.log("Vesting contract's Jetton wallet: ", vestingDataConfig.jettonWalletAddress);
-
     await jettonLockup.sendDeploy(
         provider.sender(),
         toNano('1'),
@@ -61,6 +45,9 @@ export async function run(provider: NetworkProvider) {
     );
 
     await provider.waitForDeploy(jettonLockup.address);
+
+    const jettonMaster = provider.open(JettonMaster.create(JETTON_MASTER_ADDRESS))
+    console.log('Jetton address: ', await jettonMaster.getWalletAddress(jettonLockup.address))
 
     const claimableTokens = await jettonLockup.getClaimableTokens();
     console.log('Claimable Tokens: ', claimableTokens);
