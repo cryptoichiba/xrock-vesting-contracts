@@ -13,14 +13,15 @@ export async function run(provider: NetworkProvider) {
     const tokenBalanceConfig = 25000n;
     let claimerAddress = Address.parse("UQBcwZyR_6UZAfRjIqmw-aMPs46FXAHaEEQBojCG_8snMy9D")
 
-    // @todo デプロイの前の取得方法が必要；現在は１デプロイ目のconsole.logを元に２デプロイ目の値を設定しています
-    let lockup_contract_jetton_wallet_address = Address.parse("EQBOGoiO1G75uB-HZAk_K8SBq0lBRQKSjszF8n6LY7AJpEAX")
-
     const jettonLockup = provider.open(
         JettonLockup.createFromConfig({
             adminAddress: provider.sender().address!,
             claimerAddress: claimerAddress
         }, await compile('JettonLockup')));
+
+    const jettonMaster = provider.open(JettonMaster.create(JETTON_MASTER_ADDRESS));
+    const lockup_contract_jetton_wallet_address = await jettonMaster.getWalletAddress(jettonLockup.address);
+    console.log('Jetton address: ', lockup_contract_jetton_wallet_address);
 
     let vestingDataConfig: VestingData = {
         jettonWalletAddress: lockup_contract_jetton_wallet_address,
@@ -45,9 +46,6 @@ export async function run(provider: NetworkProvider) {
     );
 
     await provider.waitForDeploy(jettonLockup.address);
-
-    const jettonMaster = provider.open(JettonMaster.create(JETTON_MASTER_ADDRESS))
-    console.log('Jetton address: ', await jettonMaster.getWalletAddress(jettonLockup.address))
 
     const claimableTokens = await jettonLockup.getClaimableTokens();
     console.log('Claimable Tokens: ', claimableTokens);
