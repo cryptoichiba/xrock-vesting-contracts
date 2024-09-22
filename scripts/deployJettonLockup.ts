@@ -11,7 +11,7 @@ export async function run(provider: NetworkProvider) {
 
 
     const tokenBalanceConfig = 25000n;
-    let claimerAddress = Address.parse("UQBcwZyR_6UZAfRjIqmw-aMPs46FXAHaEEQBojCG_8snMy9D")
+    let claimerAddress = Address.parse("UQDu4Pma1lCVJtlBZV0_ImCBXTNbkgodGrdUU3jlBV0_qQZG")
 
     const jettonLockup = provider.open(
         JettonLockup.createFromConfig({
